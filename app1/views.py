@@ -7,7 +7,7 @@ import requests
 from bs4 import BeautifulSoup 
 
 
-@api_view(['POST','GET'])
+@api_view(['POST','GET', 'PUT'])
 def webs(request):
 	if request.method == 'GET':
 			
@@ -44,13 +44,15 @@ def webs(request):
 			for row in table:
 				vendor = {}
 				# print(row) 
-				vendor["id"] = count+1
+				# vendor["id"] = count+1
 				count += 1
 				name = row.find('a', attrs = {'class':'business-name'}).text
 				vendor['name'] = name
 
-				call = row.find('div', attrs = {'class': 'phone'}).text
-				vendor['phone'] = call
+				call = row.find('div', attrs = {'class': 'phone'})
+				if call is not None:
+					call = call.text
+					vendor['phone'] = call
 				
 				address = row.find('p', attrs = {'class': 'adr'})
 				if address is not None:
@@ -69,12 +71,14 @@ def webs(request):
 					info_reqd = []
 					for ele in info_all:
 						info_reqd.append(ele.text)
+					info_reqd = ', '.join(info_reqd)
 					vendor['Information'] = info_reqd
 				else:
 					info_all = row.findAll('a',attrs = {'data-analytics':'{"click_id":1171,"adclick":false,"listing_features":"category","events":""}'})
 					info_reqd = []
 					for ele in info_all:
 						info_reqd.append(ele.text)
+					info_reqd = ', '.join(info_reqd)
 					vendor['Information'] = info_reqd
 
 				website = row.find('div', attrs = {'class':'links'})
@@ -89,11 +93,13 @@ def webs(request):
 				vendors.append(vendor)
 
 
+
+
+
 		# print(page)
 		df = pd.DataFrame(vendors)
 		# print(df)
-		# df.to_csv('/home/dell/live/hostbooks_api/output.ods', sep='\t')
-		writer = pd.ExcelWriter(str(looking_for)+'_'+str(place)+'.xlsx')
+		writer = pd.ExcelWriter('/home/newangular/web/src/assets/'+str(looking_for)+'_'+str(place)+'.xlsx')
 		df.to_excel(writer,'Sheet1')
 		# df2.to_excel(writer,'Sheet2')
 		writer.save()
@@ -101,92 +107,99 @@ def webs(request):
 		return Response(vendors)
 
 
+	elif request.method == 'PUT':
+		search = request.data['search']
+		loc = request.data['loc']
+		types = request.data['types']
+
+		if types == 'loc':
+			URL = 'https://www.yellowpages.com/autosuggest/location.html?location=' + loc
+			r = requests.get(URL)
+			soup = BeautifulSoup(r.content, 'html5lib')
+
+			# print(soup)
+			table = soup.findAll('li')#, attrs = {'class':'no-geo'})
+			lissy = []
+			# print(table)
+			print(soup.prettify()) 
+			for el in table:
+				lissy.append(el['data-value'])
+
+		else:
+			URL = 'https://www.yellowpages.com/autosuggest/headings.html?text=' + search + '&location=' + loc
+			r = requests.get(URL)
+			soup = BeautifulSoup(r.content, 'html5lib')
+
+			# print(soup)
+			table = soup.findAll('li', attrs = {'class':'no-geo'})
+			lissy = []
+			# print(table)
+			# print(soup.prettify()) 
+			for el in table:
+				lissy.append(el['data-value'])
+
+
+		return Response(lissy)
+
+
+# {
+# "search":"f",
+# "loc":""
+# }
 
 
 
 
-
-
-@api_view(['GET', 'POST', 'PUT'])
-def check(request):
+@api_view(['POST','GET'])
+def suggestionyellow(request):
 	if request.method == 'GET':
-
-		data = [
-
-		{"get":"gaurav"},
-		{"get":"akshat"},
-		{"get":"himanshu"},
-		{"get":"viraj"},
-		{"get":"prakhar"},
-		{"get":"aashrey"},
-		{"get":"toni"}
-
-		]
-
-		return Response(data)
-
+		return Response("PLEASE ENTER DETAILS!")
 
 	elif request.method == 'POST':
+		search = request.data['search']
+		loc = request.data['loc']
+		types = request.data['types']
 
-		new = request.data
+		if types == 'loc':
+			URL = 'https://www.yellowpages.com/autosuggest/location.html?location=' + loc
+			r = requests.get(URL)
+			soup = BeautifulSoup(r.content, 'html5lib')
 
-		print("new")
-		print(new)
+			# print(soup)
+			table = soup.findAll('li')#, attrs = {'class':'no-geo'})
+			lissy = []
+			# print(table)
+			print(soup.prettify()) 
+			for el in table:
+				lissy.append({'name':el['data-value']})
 
-		data = [
+		else:
+			URL = 'https://www.yellowpages.com/autosuggest/headings.html?text=' + search + '&location=' + loc
+			r = requests.get(URL)
+			soup = BeautifulSoup(r.content, 'html5lib')
 
-		{"post":"India"},
-		{"post":"Australia"},
-		{"post":"New Zealand"},
-		{"post":"Scotland"},
-		{"post":"Amsterdam"},
-		{"post":"HUngry"},
-		{"post":"Malasia"},
-		{"post":"Toni Stark"},
-
-		{'post':new}
-
-		]
-
-		return Response(data)
-
-
-	elif request.method == 'PUT':
-
-		new = request.data
-		
-		print("new")
-		print(new)
-
-		data = [
-
-		{"put":"India"},
-		{"put":"Australia"},
-		{"put":"New Zealand"},
-		{"put":"Scotland"},
-		{"put":"Amsterdam"},
-		{"put":"HUngry"},
-		{"put":"Malasia"},
-		{"put":"Toni Stark"},
-
-		{'put':new}
-
-		]
-
-		return Response(data)
+			# print(soup)
+			table = soup.findAll('li', attrs = {'class':'no-geo'})
+			lissy = []
+			# print(table)
+			# print(soup.prettify()) 
+			for el in table:
+				lissy.append({'name':el['data-value']})
 
 
+		return Response(lissy)
 
 
-'''
+# {
+# "search":"f",
+# "loc":""
+# }
 
-
-{"gaurav":"asdfghjk"}
-
-
-
-'''
-
+# {
+# "search":"f",
+# "loc":"",
+# "types":"f"
+# }
 
 
 
